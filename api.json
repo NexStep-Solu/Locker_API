@@ -1,0 +1,755 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Pawn Locker Integration API \u2014 Offline",
+        "version": "1.0.0",
+        "description": "Pawn Locker Integration \u2014 Pure Offline Windows App (C# core, no network). Gateway is manual Locker-API front-end (input/scan \u2192 Locker). Locker APIs: POST /api/integration/v1/storage-assignments/batch (App\u2192Locker) and POST /api/locker-integration/v1/location-updates (Locker\u2192App). No POS sync. See docs/API.md and docs/DEPLOYMENT.md."
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000/api"
+        }
+    ],
+    "paths": {
+        "/health": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Integration gateway healthy"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "app": {
+                                                    "type": "boolean"
+                                                },
+                                                "timestamp": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "app",
+                                                "timestamp"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/locker-integration/v1/location-updates": {
+            "post": {
+                "operationId": "lockerLocationUpdate.store",
+                "tags": [
+                    "LockerLocationUpdate"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreLocationUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Location update processed"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "eventId": {
+                                                            "type": "string"
+                                                        },
+                                                        "bagNo": {
+                                                            "type": "string"
+                                                        },
+                                                        "oldLocation": {
+                                                            "type": "string"
+                                                        },
+                                                        "newLocation": {
+                                                            "type": "string"
+                                                        },
+                                                        "currentLocation": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "eventId",
+                                                        "bagNo",
+                                                        "oldLocation",
+                                                        "newLocation",
+                                                        "currentLocation"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Duplicate event - already processed"
+                                                },
+                                                "errorCode": {
+                                                    "type": "string",
+                                                    "const": "DUPLICATE_EVENT"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "eventId": {
+                                                            "type": "string"
+                                                        },
+                                                        "bagNo": {
+                                                            "type": "string"
+                                                        },
+                                                        "status": {
+                                                            "type": "string"
+                                                        },
+                                                        "duplicate": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "eventId",
+                                                        "bagNo",
+                                                        "status",
+                                                        "duplicate"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "errorCode",
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/pos/bags/{bagNo}": {
+            "get": {
+                "operationId": "posBag.show",
+                "tags": [
+                    "PosBag"
+                ],
+                "parameters": [
+                    {
+                        "name": "bagNo",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Bag retrieved"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "bagNo": {
+                                                    "type": "string"
+                                                },
+                                                "voucherNo": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "voucherDate": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "currentLocation": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "lastLockerUpdateAt": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "lastLockerEventId": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "bagNo",
+                                                "voucherNo",
+                                                "voucherDate",
+                                                "currentLocation",
+                                                "lastLockerUpdateAt",
+                                                "lastLockerEventId"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Bag not found"
+                                        },
+                                        "errorCode": {
+                                            "type": "string",
+                                            "const": "BAG_NOT_FOUND"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "errorCode"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/pos/bags/{bagNo}/location": {
+            "get": {
+                "operationId": "posBag.location",
+                "tags": [
+                    "PosBag"
+                ],
+                "parameters": [
+                    {
+                        "name": "bagNo",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Bag location retrieved"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "bagNo": {
+                                                    "type": "string"
+                                                },
+                                                "currentLocation": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "lastLockerUpdateAt": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "lastLockerEventId": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "bagNo",
+                                                "currentLocation",
+                                                "lastLockerUpdateAt",
+                                                "lastLockerEventId"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Bag not found"
+                                        },
+                                        "errorCode": {
+                                            "type": "string",
+                                            "const": "BAG_NOT_FOUND"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "errorCode"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/pos/storage-assignments": {
+            "post": {
+                "operationId": "posStorageAssignment.store",
+                "tags": [
+                    "PosStorageAssignment"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreStorageAssignmentRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Storage assignment accepted"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "batchNo": {
+                                                    "type": "string"
+                                                },
+                                                "requestId": {
+                                                    "type": "string"
+                                                },
+                                                "total": {
+                                                    "type": "string"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                },
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "batchNo",
+                                                "requestId",
+                                                "total",
+                                                "status",
+                                                "items"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Duplicate batch - already processed"
+                                        },
+                                        "errorCode": {
+                                            "type": "string",
+                                            "const": "DUPLICATE_BATCH"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "batchNo": {
+                                                    "type": "string"
+                                                },
+                                                "requestId": {
+                                                    "type": "string"
+                                                },
+                                                "total": {
+                                                    "type": "string"
+                                                },
+                                                "accepted": {
+                                                    "type": "string"
+                                                },
+                                                "rejected": {
+                                                    "type": "string"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                },
+                                                "duplicate": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "batchNo",
+                                                "requestId",
+                                                "total",
+                                                "accepted",
+                                                "rejected",
+                                                "status",
+                                                "duplicate"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "errorCode",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/pos/free-drawers": {
+            "get": {
+                "operationId": "posDrawer.index",
+                "tags": [
+                    "PosDrawer"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Free drawers from locker",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "count": {
+                                                    "type": "integer"
+                                                },
+                                                "drawers": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "code": {
+                                                                "type": "string"
+                                                            },
+                                                            "status": {
+                                                                "type": "string"
+                                                            },
+                                                            "enabled": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "maintenance": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "updatedAt": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "count",
+                                                "drawers"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "StoreLocationUpdateRequest": {
+                "type": "object",
+                "properties": {
+                    "eventId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9\\-_]+$",
+                        "maxLength": 100
+                    },
+                    "eventType": {
+                        "type": "string",
+                        "enum": [
+                            "BAG_LOCATION_CHANGED"
+                        ]
+                    },
+                    "bagNo": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9\\-_]+$",
+                        "maxLength": 100
+                    },
+                    "voucherNo": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "oldLocation": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
+                    "newLocation": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
+                    "movementType": {
+                        "type": "string",
+                        "enum": [
+                            "CONSOLIDATION",
+                            "IN",
+                            "OUT",
+                            "RELOCATION",
+                            "TRANSFER"
+                        ]
+                    },
+                    "occurredAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "eventId",
+                    "eventType",
+                    "bagNo",
+                    "voucherNo",
+                    "oldLocation",
+                    "newLocation",
+                    "movementType",
+                    "occurredAt"
+                ],
+                "title": "StoreLocationUpdateRequest"
+            },
+            "StoreStorageAssignmentRequest": {
+                "type": "object",
+                "properties": {
+                    "batchNo": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9\\-_]+$",
+                        "maxLength": 100
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "voucherNo": {
+                                    "type": "string",
+                                    "maxLength": 100
+                                },
+                                "voucherDate": {
+                                    "type": "string",
+                                    "format": "date"
+                                },
+                                "bagNo": {
+                                    "type": "string",
+                                    "pattern": "^[A-Za-z0-9\\-_]+$",
+                                    "maxLength": 100
+                                },
+                                "location": {
+                                    "type": "string",
+                                    "pattern": "^[A-Za-z0-9\\-_]+$",
+                                    "maxLength": 50
+                                }
+                            },
+                            "required": [
+                                "voucherNo",
+                                "voucherDate",
+                                "bagNo",
+                                "location"
+                            ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 1000
+                    }
+                },
+                "required": [
+                    "batchNo",
+                    "items"
+                ],
+                "title": "StoreStorageAssignmentRequest"
+            }
+        },
+        "responses": {
+            "ValidationException": {
+                "description": "Validation error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Errors overview."
+                                },
+                                "errors": {
+                                    "type": "object",
+                                    "description": "A detailed description of each field that failed validation.",
+                                    "additionalProperties": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "errors"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
