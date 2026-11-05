@@ -2,14 +2,17 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Dedoc\Scramble\Scramble;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use Symfony\Component\HttpFoundation\IpUtils;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,7 +30,32 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureApiDocsAccess();
         $this->registerApiDocs();
+    }
+
+    /**
+     * Scramble's RestrictedDocsAccess only allows docs in the local
+     * environment unless the `viewApiDocs` gate is defined. Allow signed-in
+     * staff and LAN clients (the gateway is deployed on a private network).
+     */
+    protected function configureApiDocsAccess(): void
+    {
+        Gate::define('viewApiDocs', function (?User $user): bool {
+            if ($user !== null) {
+                return true;
+            }
+
+            return IpUtils::checkIp(request()->ip(), [
+                '127.0.0.0/8',
+                '10.0.0.0/8',
+                '172.16.0.0/12',
+                '192.168.0.0/16',
+                '::1',
+                'fc00::/7',
+                'fe80::/10',
+            ]);
+        });
     }
 
     protected function registerApiDocs(): void
